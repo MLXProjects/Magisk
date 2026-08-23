@@ -51,8 +51,8 @@
 
 enum class FileFormat : uint8_t;
 
-int unpack(Utf8CStr image, bool skip_decomp = false, bool hdr = false);
-void repack(Utf8CStr src_img, Utf8CStr out_img, bool skip_comp = false);
+int unpack(Utf8CStr image, bool skip_decomp = false, bool skip_kdecomp = false, bool hdr = false);
+void repack(Utf8CStr src_img, Utf8CStr out_img, bool skip_comp = false, bool skip_kcomp = false);
 int split_image_dtb(Utf8CStr filename, bool skip_decomp = false);
 void cleanup();
 FileFormat check_fmt(const void *buf, size_t len);

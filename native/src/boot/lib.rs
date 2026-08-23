@@ -53,8 +53,8 @@ pub mod ffi {
         type Utf8CStrRef<'a> = base::Utf8CStrRef<'a>;
 
         fn cleanup();
-        fn unpack(image: Utf8CStrRef, skip_decomp: bool, hdr: bool) -> i32;
-        fn repack(src_img: Utf8CStrRef, out_img: Utf8CStrRef, skip_comp: bool);
+        fn unpack(image: Utf8CStrRef, skip_decomp: bool, skip_kdecomp: bool, hdr: bool) -> i32;
+        fn repack(src_img: Utf8CStrRef, out_img: Utf8CStrRef, skip_comp: bool, skip_kcomp: bool);
         fn split_image_dtb(filename: Utf8CStrRef, skip_decomp: bool) -> i32;
         fn check_fmt(buf: &[u8]) -> FileFormat;
     }

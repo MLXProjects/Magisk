@@ -630,14 +630,15 @@ int split_image_dtb(Utf8CStr filename, bool skip_decomp) {
     }
 }
 
-int unpack(Utf8CStr image, bool skip_decomp, bool hdr) {
+int unpack(Utf8CStr image, bool skip_decomp, bool skip_kdecomp, bool hdr) {
     const boot_img boot(image.c_str());
 
     if (hdr)
         boot.hdr->dump_hdr_file();
 
     // Dump kernel
-    if (!skip_decomp && fmt_compressed(boot.k_fmt)) {
+    if (skip_decomp) skip_kdecomp = true;
+    if (!skip_kdecomp && fmt_compressed(boot.k_fmt)) {
         if (boot.hdr->kernel_size() != 0) {
             int fd = creat(KERNEL_FILE, 0644);
             decompress(boot.k_fmt, fd, boot.kernel, boot.hdr->kernel_size());
@@ -712,7 +713,7 @@ write_zero(fd, align_padding(lseek(fd, 0, SEEK_CUR) - off.header, page_size))
 
 #define file_align() file_align_with(boot.hdr->page_size())
 
-void repack(Utf8CStr src_img, Utf8CStr out_img, bool skip_comp) {
+void repack(Utf8CStr src_img, Utf8CStr out_img, bool skip_comp, bool skip_kcomp) {
     const boot_img boot(src_img.c_str());
     fprintf(stderr, "Repack to boot image: [%s]\n", out_img.c_str());
 
@@ -772,7 +773,8 @@ void repack(Utf8CStr src_img, Utf8CStr out_img, bool skip_comp) {
     }
     if (access(KERNEL_FILE, R_OK) == 0) {
         mmap_data m(KERNEL_FILE);
-        if (!skip_comp && !fmt_compressed_any(check_fmt(m.data(), m.size())) && fmt_compressed(boot.k_fmt)) {
+		if (skip_comp) skip_kcomp = true;
+        if (!skip_kcomp && !fmt_compressed_any(check_fmt(m.data(), m.size())) && fmt_compressed(boot.k_fmt)) {
             // Always use zopfli for zImage compression
             auto fmt = (boot.flags[ZIMAGE_KERNEL] && boot.k_fmt == FileFormat::GZIP) ? FileFormat::ZOPFLI : boot.k_fmt;
             hdr->kernel_size() = compress_len(fmt, m, fd);
@@ -785,7 +787,7 @@ void repack(Utf8CStr src_img, Utf8CStr out_img, bool skip_comp) {
                 fprintf(stderr, "! Recompressed kernel is too large, using original kernel\n");
                 ftruncate64(fd, lseek64(fd, - (off64_t) hdr->kernel_size(), SEEK_CUR));
                 xwrite(fd, boot.kernel, boot.hdr->kernel_size());
-            } else if (!skip_comp) {
+            } else if (!skip_kcomp) {
                 // Pad zeros to make sure the zImage file size does not change
                 // Also ensure the last 4 bytes are the uncompressed vmlinux size
                 uint32_t sz = m.size();

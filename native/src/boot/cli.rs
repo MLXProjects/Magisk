@@ -45,6 +45,8 @@ enum Action {
 struct Unpack {
     #[argh(switch, short = 'n', long = none)]
     no_decompress: bool,
+    #[argh(switch, short = 'k', long = none)]
+    no_kdecompress: bool,
     #[argh(switch, short = 'h', long = none)]
     dump_header: bool,
     #[argh(positional)]
@@ -56,6 +58,8 @@ struct Unpack {
 struct Repack {
     #[argh(switch, short = 'n', long = none)]
     no_compress: bool,
+    #[argh(switch, short = 'k', long = none)]
+    no_kcompress: bool,
     #[argh(positional)]
     img: Utf8CString,
     #[argh(positional)]
@@ -193,7 +197,7 @@ fn print_usage(cmd: &str) {
 Usage: {0} <action> [args...]
 
 Supported actions:
-  unpack [-n] [-h] <bootimg>
+  unpack [-n] [-k] [-h] <bootimg>
     Unpack <bootimg> to its individual components, each component to
     a file with its corresponding file name in the current directory.
     Supported components: kernel, kernel_dtb, ramdisk.cpio, second,
@@ -201,6 +205,8 @@ Supported actions:
     By default, each component will be decompressed on-the-fly.
     If '-n' is provided, all decompression operations will be skipped;
     each component will remain untouched, dumped in its original format.
+    If '-k' is provided, only the kernel decompression operation will be skipped;
+    the kernel will remain untouched, but the ramdisk will be decompressed.
     If '-h' is provided, the boot image header information will be
     dumped to the file 'header', which can be used to modify header
     configurations during repacking.
@@ -218,6 +224,7 @@ Supported actions:
     in the current directory is already compressed, then no addition
     compression will be performed for that specific component.
     If '-n' is provided, all compression operations will be skipped.
+    If '-k' is provided, only the kernel compression operation will be skipped.
     If env variable PATCHVBMETAFLAG is set to true, all disable flags in
     the boot image's vbmeta header will be set.
 
@@ -354,13 +361,15 @@ fn boot_main(cmds: CmdArgs) -> LoggedResult<i32> {
     match cli.action {
         Action::Unpack(Unpack {
             no_decompress,
+            no_kdecompress,
             dump_header,
             img,
         }) => {
-            return Ok(unpack(&img, no_decompress, dump_header));
+            return Ok(unpack(&img, no_decompress, no_kdecompress, dump_header));
         }
         Action::Repack(Repack {
             no_compress,
+            no_kcompress,
             img,
             out,
         }) => {
@@ -368,6 +377,7 @@ fn boot_main(cmds: CmdArgs) -> LoggedResult<i32> {
                 &img,
                 out.as_deref().unwrap_or(cstr!("new-boot.img")),
                 no_compress,
+                no_kcompress,
             );
         }
         Action::Verify(Verify { img, cert }) => {
